@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -176,28 +176,35 @@ module.exports = function normalizeComponent (
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(2);
+module.exports = __webpack_require__(6);
 
 
 /***/ }),
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
+module.exports = __webpack_require__(3);
 
-
-Nova.booting(function (Vue, router) {
-    Vue.component('index-nova-field-sortable', __webpack_require__(3));
-    Vue.component('resource-table', __webpack_require__(9));
-});
 
 /***/ }),
 /* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
+
+
+Nova.booting(function (Vue, router) {
+    Vue.component('index-nova-field-sortable', __webpack_require__(4));
+    Vue.component('resource-table', __webpack_require__(9));
+});
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
 var disposed = false
 var normalizeComponent = __webpack_require__(0)
 /* script */
-var __vue_script__ = __webpack_require__(4)
+var __vue_script__ = __webpack_require__(5)
 /* template */
 var __vue_template__ = __webpack_require__(8)
 /* template functional */
@@ -238,12 +245,12 @@ module.exports = Component.exports
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator__);
 
 
@@ -321,13 +328,6 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
         }
     }
 });
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__(6);
-
 
 /***/ }),
 /* 6 */
@@ -1252,7 +1252,7 @@ module.exports = Component.exports
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator__ = __webpack_require__(1);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_laravel_nova__ = __webpack_require__(11);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_laravel_nova___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_laravel_nova__);
@@ -1381,7 +1381,8 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
         return {
             selectAllResources: false,
             selectAllMatching: false,
-            resourceCount: null
+            resourceCount: null,
+            draggingEnabled: false
         };
     },
 
@@ -1410,14 +1411,9 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
         },
 
 
-        log: function log(evt) {
-            window.console.log('this');
-            window.console.log(this);
-            window.console.log('event');
-            window.console.log(evt);
-            this.$toasted.show(this.__('The new order has been set!'), { type: 'success' });
-        },
-
+        /**
+         * Reorder Resource by Drag and drop
+         */
         reorderDragResource: function () {
             var _ref = _asyncToGenerator( /*#__PURE__*/__WEBPACK_IMPORTED_MODULE_0_babel_runtime_regenerator___default.a.mark(function _callee(evt) {
                 var response;
@@ -1458,11 +1454,12 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 
             return reorderDragResource;
         }(),
-        reorderDragRequest: function reorderDragRequest(elementId, oldPosition, newPosition) {
-            // console.log(this.resources);
-            // console.log(this.resourceName);
-            // console.log(elementId);
 
+
+        /**
+         * Reorder Resource by Drag and drop request
+         */
+        reorderDragRequest: function reorderDragRequest(elementId, oldPosition, newPosition) {
             return Nova.request().patch('/nova-vendor/naxon/nova-field-sortable/' + this.resourceName + '/' + elementId + '/reorder', {
                 setNewOrder: {
                     resourcesArray: this.resources,
@@ -1498,8 +1495,29 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
          */
         viaHasOne: function viaHasOne() {
             return this.relationshipType == 'hasOne' || this.relationshipType == 'morphOne';
+        },
+
+
+        /**
+         * Is Orderable
+         */
+        isOrderable: function isOrderable() {
+
+            if (this.$route.query[this.resourceName + '_order'] || this.$route.query[this.resourceName + '_direction']) return false;
+
+            if (this.resources[0].fields) {
+
+                for (var index = 0; index < this.resources[0].fields.length; index++) {
+                    if (this.resources[0].fields[index]['component'] == "nova-field-sortable") {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
+
 });
 
 /***/ }),
@@ -14155,7 +14173,11 @@ var render = function() {
           _c(
             "draggable",
             {
-              attrs: { list: _vm.resources, element: "tbody" },
+              attrs: {
+                list: _vm.resources,
+                options: { disabled: !_vm.isOrderable },
+                element: "tbody"
+              },
               on: { change: _vm.reorderDragResource }
             },
             _vm._l(_vm.resources, function(resource, index) {

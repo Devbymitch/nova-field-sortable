@@ -36,7 +36,7 @@
             </tr>
         </thead>
 
-        <draggable :list="resources" :element="'tbody'"  @change="reorderDragResource"> <!-- @end="reOrderResource()"-->
+        <draggable :list="resources" :options="{disabled: !isOrderable}" :element="'tbody'"   @change="reorderDragResource">
             <tr
                 v-for="(resource, index) in resources"
                 :testId="`${resourceName}-items-${index}`"
@@ -117,6 +117,7 @@ export default {
         selectAllResources: false,
         selectAllMatching: false,
         resourceCount: null,
+        draggingEnabled: false,
     }),
 
     methods: {
@@ -141,21 +142,12 @@ export default {
             this.$emit('order', field)
         },
 
-        log: function(evt) {
-            window.console.log('this');
-            window.console.log(this);
-            window.console.log('event');
-            window.console.log(evt);
-            this.$toasted.show(
-                this.__('The new order has been set!'),
-                {type: 'success'}
-            );
-        },
-
-        async reorderDragResource(evt) {
-            
+        /**
+         * Reorder Resource by Drag and drop
+         */
+        async reorderDragResource(evt) {        
             try {
-
+                
                 const response = await this.reorderDragRequest( evt.moved.element.id.value, evt.moved.oldIndex, evt.moved.newIndex);
 
                 this.$toasted.show(
@@ -171,11 +163,10 @@ export default {
             }
         },
 
+        /**
+         * Reorder Resource by Drag and drop request
+         */
         reorderDragRequest(elementId, oldPosition, newPosition) {
-            // console.log(this.resources);
-            // console.log(this.resourceName);
-            // console.log(elementId);
-            
             return Nova.request().patch(
                 `/nova-vendor/naxon/nova-field-sortable/${this.resourceName}/${elementId}/reorder`,
                 {
@@ -188,6 +179,7 @@ export default {
                 }
             );
         },
+
     },
 
     computed: {
@@ -215,6 +207,28 @@ export default {
         viaHasOne() {
             return this.relationshipType == 'hasOne' || this.relationshipType == 'morphOne'
         },
+
+        /**
+         * Is Orderable
+         */
+        isOrderable() {
+
+            if(this.$route.query[ this.resourceName + '_order' ] || this.$route.query[ this.resourceName + '_direction' ] )
+                return false;
+
+            if (this.resources[0].fields) {
+
+                for (let index = 0; index < this.resources[0].fields.length; index++) {
+                    if( this.resources[0].fields[index]['component'] == "nova-field-sortable" ) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        },
+
     },
+
 }
 </script>
