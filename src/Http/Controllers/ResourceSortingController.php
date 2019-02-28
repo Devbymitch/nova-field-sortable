@@ -9,9 +9,29 @@ class ResourceSortingController extends Controller
 {
     public function handle(NovaRequest $request)
     {
+
         $request->findResourceOrFail()->authorizeToUpdate($request);
         
         $direction = $request->get('direction', null);
+        $new_order = $request->get('setNewOrder', null);
+
+        if ($direction)
+            return $this->reorderByDirection($request, $direction);
+        elseif ( $new_order ) 
+            return $this->reorderByArray($request, $new_order);
+        else 
+            return response('', 500);
+        
+    }
+
+    /**
+     * Riordino direzionale
+     *
+     * @param [type] $request
+     * @param [type] $direction
+     * @return void
+     */
+    public function reorderByDirection($request, $direction) {
 
         if (!in_array($direction, ['up', 'down'])) {
             return response('', 500);
@@ -30,6 +50,45 @@ class ResourceSortingController extends Controller
         } else {
             $model->moveOrderDown();
         }
+
+        return response('', 200);
+    }
+
+    /**
+     * Riordino con il drag and drop
+     *
+     * @param [type] $request
+     * @param [type] $new_order
+     * @return void
+     */
+    public function reorderByArray($request, $new_order) {
+
+        if (!array_key_exists('resourcesArray',$new_order) || !array_key_exists('oldPosition',$new_order) || !array_key_exists('newPosition',$new_order)) {
+            return response('', 500);
+        }
+
+        $resourcesArray = (array) $new_order['resourcesArray'];
+        $oldPos = (int) $new_order['oldPosition'];
+        $newPos = (int) $new_order['newPosition'];
+
+        // costruisco l'array di ID da riordinare
+        // https://github.com/spatie/eloquent-sortable
+        $arrayToReorder = array();
+        if( ($newPos - $oldPos) > 0 ) {
+            foreach (range($oldPos, $newPos) as $index) {
+                $arrayToReorder[] = $resourcesArray[$index]['id']['value'];
+            }
+            $firstModelOrder = $request->findModelQuery()->firstOrFail()->order();
+
+        } else {
+            foreach (range($newPos, $oldPos) as $index) {
+                $arrayToReorder[] = $resourcesArray[$index]['id']['value'];
+            }
+            $firstModelOrder = $request->model()::find($arrayToReorder[1])->order();
+        }
+
+        // riordino l'array partendo dall'indice di ordine più basso
+        $request->model()::setNewOrder($arrayToReorder, $firstModelOrder );
 
         return response('', 200);
     }
