@@ -213,11 +213,10 @@ export default {
          */
         isOrderable() {
 
-            if(this.$route.query[ this.resourceName + '_order' ] || this.$route.query[ this.resourceName + '_direction' ] )
+            if( this.$route.query[ this.resourceName + '_order' ] || this.$route.query[ this.resourceName + '_direction' ] )
                 return false;
 
             if (this.resources[0].fields) {
-
                 for (let index = 0; index < this.resources[0].fields.length; index++) {
                     if( this.resources[0].fields[index]['component'] == "nova-field-sortable" ) {
                         return true;

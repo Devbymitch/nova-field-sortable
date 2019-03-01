@@ -25,7 +25,7 @@ class ResourceSortingController extends Controller
     }
 
     /**
-     * Riordino direzionale
+     * Reorder by direction
      *
      * @param [type] $request
      * @param [type] $direction
@@ -55,7 +55,7 @@ class ResourceSortingController extends Controller
     }
 
     /**
-     * Riordino con il drag and drop
+     * Reorder by drag and drop
      *
      * @param [type] $request
      * @param [type] $new_order
@@ -71,20 +71,28 @@ class ResourceSortingController extends Controller
         $oldPos = (int) $new_order['oldPosition'];
         $newPos = (int) $new_order['newPosition'];
 
-        // costruisco l'array di ID da riordinare
-        // https://github.com/spatie/eloquent-sortable
+        /**
+         * costruisco l'array di ID da riordinare
+         * https://github.com/spatie/eloquent-sortable
+         * 
+         * example: MyModel::setNewOrder([3,1,2], 10);
+         */ 
+        $sortable_column = $request->model()->sortable['order_column_name'];
         $arrayToReorder = array();
+        
         if( ($newPos - $oldPos) > 0 ) {
+
             foreach (range($oldPos, $newPos) as $index) {
                 $arrayToReorder[] = $resourcesArray[$index]['id']['value'];
             }
-            $firstModelOrder = $request->findModelQuery()->firstOrFail()->order();
+            $firstModelOrder = $request->findModelQuery()->firstOrFail()->{$sortable_column};
 
         } else {
+
             foreach (range($newPos, $oldPos) as $index) {
                 $arrayToReorder[] = $resourcesArray[$index]['id']['value'];
             }
-            $firstModelOrder = $request->model()::find($arrayToReorder[1])->order();
+            $firstModelOrder = $request->model()::find($arrayToReorder[1])->{$sortable_column};
         }
 
         // riordino l'array partendo dall'indice di ordine più basso
