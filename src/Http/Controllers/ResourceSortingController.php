@@ -11,14 +11,13 @@ class ResourceSortingController extends Controller
     {
 
         $request->findResourceOrFail()->authorizeToUpdate($request);
-        
-        $direction = $request->get('direction', null);
-        $new_order = $request->get('setNewOrder', null);
 
-        if ($direction)
+        if ( $direction = $request->get('direction', null) )
             return $this->reorderByDirection($request, $direction);
-        elseif ( $new_order ) 
+        elseif ( $new_order = $request->get('setNewOrder', null) ) 
             return $this->reorderByArray($request, $new_order);
+        elseif ( $swap_model_id = $request->get('swapModelId', null) )
+            return $this->reorderBySwap($request, $swap_model_id);
         else 
             return response('', 500);
         
@@ -45,11 +44,28 @@ class ResourceSortingController extends Controller
             ]), 500);
         }
 
-        if ($direction == 'up') {
+        if ($direction == 'up')
             $model->moveOrderUp();
-        } else {
+        else 
             $model->moveOrderDown();
-        }
+        
+
+        return response('', 200);
+    }
+
+    /**
+     * Reorder by swap with other model
+     *
+     * @param [type] $request
+     * @param integer $swap_model_id
+     * @return void
+     */
+    public function reorderBySwap($request,int $swap_model_id) {
+
+        $model = $request->findModelQuery()->firstOrFail();
+        $swap_model = $request->model()::find( $swap_model_id );
+
+        $model->swapOrderWithModel($swap_model);
 
         return response('', 200);
     }
