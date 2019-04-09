@@ -4,6 +4,7 @@ namespace Naxon\NovaFieldSortable;
 
 use Laravel\Nova\Fields\Field;
 
+
 class Sortable extends Field
 {
     /**
